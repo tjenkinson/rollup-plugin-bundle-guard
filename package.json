@@ -2,11 +2,16 @@
   "name": "rollup-plugin-import-guard",
   "version": "0.0.1",
   "description": "A rollup plugin that makes sure you don't accidentally import something statically, which could have an effect on your bundle size.",
-  "main": "src/rollup-plugin-import-guard.js",
+  "main": "dist/rollup-plugin-import-guard.js",
   "scripts": {
-    "prettier": "prettier --write **/*.{js,md}",
-    "test": "jest"
+    "prettier": "prettier --write **/*.{js,json,md}",
+    "build": "babel src/rollup-plugin-import-guard.js --out-dir dist",
+    "test": "jest",
+    "version": "npm run build"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tjenkinson/rollup-plugin-import-guard.git"
@@ -31,6 +36,8 @@
     }
   },
   "devDependencies": {
+    "@babel/cli": "^7.7.0",
+    "@babel/preset-env": "^7.7.1",
     "@types/jest": "^24.0.23",
     "husky": "^3.0.9",
     "jest": "^24.9.0",
