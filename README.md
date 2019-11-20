@@ -31,7 +31,6 @@ npm install --save-dev rollup-plugin-bundle-guard
 rollup.config.js
 
 ```js
-import { rollup } from 'rollup';
 import rollupPluginBundleGuard from 'rollup-plugin-bundle-guard';
 
 export default {
