@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-bundle-guard",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A rollup plugin that makes sure you don't accidentally import something statically, which could have an effect on your bundle size.",
   "main": "src/rollup-plugin-bundle-guard.js",
   "scripts": {
