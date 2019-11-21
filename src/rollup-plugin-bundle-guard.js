@@ -1,41 +1,81 @@
 module.exports = ({
-  groups = {},
+  modules = [],
   comments = { pathPatterns: [/node_modules/], isWhitelist: false },
   strictMode = false
 } = {}) => {
-  const commentFlag = 'rollup-plugin-bundle-guard: group=';
-  const moduleIdToGroups = new Map();
+  const groupCommentFlag = 'rollup-plugin-bundle-guard: group=';
+  const allowedImportFromCommentFlag =
+    'rollup-plugin-bundle-guard: allowedImportFrom=';
+  const defaultGroupName = 'default';
+  const moduleIdToGroup = new Map();
+  const moduleIdToAllowedImporters = new Map();
   const modulesCheckedConfig = new Set();
 
-  function addModuleIdToGroup(moduleId, groupName) {
-    const groups = moduleIdToGroups.get(moduleId) || new Set();
-    groups.add(groupName);
-    moduleIdToGroups.set(moduleId, groups);
+  function addModuleIdToGroup(context, moduleId, groupName) {
+    const group = moduleIdToGroup.get(moduleId);
+    if (group && group !== groupName) {
+      context.error(
+        `"${moduleId}" is already assigned to group "${group}". It cannot also be assigned to group "${groupName}".`
+      );
+    }
+    moduleIdToGroup.set(moduleId, groupName);
   }
 
-  async function getModuleGroups(context, moduleId) {
+  function addModuleIdToAllowedImporters(moduleId, groupName) {
+    const allowedImporters =
+      moduleIdToAllowedImporters.get(moduleId) || new Set();
+    allowedImporters.add(groupName);
+    moduleIdToAllowedImporters.set(moduleId, allowedImporters);
+  }
+
+  async function moduleIdMatches(context, candidateModuleId, moduleIdOrRegex) {
+    if (moduleIdOrRegex instanceof RegExp) {
+      return moduleIdOrRegex.test(candidateModuleId);
+    } else {
+      const resolved = await context.resolve(moduleIdOrRegex, '');
+      const itemModuleId = resolved && resolved.id;
+      return itemModuleId === candidateModuleId;
+    }
+  }
+
+  async function getModuleGroup(context, moduleId) {
     if (!modulesCheckedConfig.has(moduleId)) {
       modulesCheckedConfig.add(moduleId);
-      for (const groupName in groups) {
-        for (let i = 0; i < groups[groupName].length; i++) {
-          const item = groups[groupName][i];
-          if (item instanceof RegExp) {
-            if (item.test(moduleId)) {
-              addModuleIdToGroup(moduleId, groupName);
-            }
-          } else {
-            const resolved = await context.resolve(item, process.cwd());
-            const itemModuleId = resolved && resolved.id;
-            if (itemModuleId === moduleId) {
-              addModuleIdToGroup(moduleId, groupName);
-            }
+      for (let i = 0; i < modules.length; i++) {
+        const { module: moduleName, allowedImportFrom = [], group } = modules[
+          i
+        ];
+        if (!moduleName) {
+          context.error(new Error(`'moduleName' required.`));
+        }
+        if (await moduleIdMatches(context, moduleId, moduleName)) {
+          if (!strictMode || group) {
+            addModuleIdToGroup(context, moduleId, group || defaultGroupName);
           }
+          allowedImportFrom.forEach(allowedImportFromGroup => {
+            addModuleIdToAllowedImporters(moduleId, allowedImportFromGroup);
+          });
         }
       }
     }
-    return moduleIdToGroups.has(moduleId)
-      ? Array.from(moduleIdToGroups.get(moduleId))
-      : [];
+    return moduleIdToGroup.has(moduleId)
+      ? moduleIdToGroup.get(moduleId)
+      : strictMode
+      ? null
+      : defaultGroupName;
+  }
+
+  async function getModuleAllowedImporters(context, moduleId) {
+    const allowedImporters = [
+      ...(moduleIdToAllowedImporters.get(moduleId) || new Set())
+    ];
+    return [
+      ...new Set(
+        [await getModuleGroup(context, moduleId), ...allowedImporters].filter(
+          Boolean
+        )
+      )
+    ];
   }
 
   return {
@@ -52,11 +92,16 @@ module.exports = ({
       const ast = this.parse(code, {
         onComment: (_block, text) => {
           const trimmed = text.trim();
-          if (trimmed.startsWith(commentFlag)) {
-            const groupNames = trimmed.substr(commentFlag.length);
-            groupNames
-              .split(' ')
-              .forEach(groupName => addModuleIdToGroup(moduleId, groupName));
+          if (trimmed.startsWith(groupCommentFlag)) {
+            const groupName = trimmed.substr(groupCommentFlag.length);
+            addModuleIdToGroup(this, moduleId, groupName);
+          } else if (trimmed.startsWith(allowedImportFromCommentFlag)) {
+            const groupNames = trimmed
+              .substr(allowedImportFromCommentFlag.length)
+              .split(' ');
+            groupNames.forEach(groupName => {
+              addModuleIdToAllowedImporters(moduleId, groupName);
+            });
           }
         }
       });
@@ -65,39 +110,33 @@ module.exports = ({
 
     async generateBundle(_, bundle) {
       for (const fileName in bundle) {
-        if (bundle[fileName].type !== 'chunk') {
+        if (bundle[fileName].type && bundle[fileName].type !== 'chunk') {
           continue;
         }
 
         for (const currentModule in bundle[fileName].modules) {
-          const currentModuleGroups = await getModuleGroups(
-            this,
-            currentModule
-          );
+          const currentModuleGroup = await getModuleGroup(this, currentModule);
           const moduleInfo = this.getModuleInfo(currentModule);
           for (let i = 0; i < moduleInfo.importedIds.length; i++) {
             const importedModule = moduleInfo.importedIds[i];
-            const importedModuleGroups = await getModuleGroups(
+            const importedModuleAllowedImporters = await getModuleAllowedImporters(
               this,
               importedModule
             );
-            if (strictMode && !importedModuleGroups.length) {
+            if (!importedModuleAllowedImporters.length) {
               this.error(
                 new Error(
                   `"${importedModule}" is not assigned a group, which is required when strict mode is enabled.`
                 )
               );
             } else if (
-              importedModuleGroups.length &&
-              !importedModuleGroups.some(group =>
-                currentModuleGroups.includes(group)
-              )
+              !importedModuleAllowedImporters.includes(currentModuleGroup)
             ) {
               this.error(
                 new Error(
-                  `"${currentModule}" statically imports "${importedModule}" which is not allowed because it is not in the same group. Should it be in ${
-                    importedModuleGroups.length > 1 ? 'one of ' : ''
-                  }"${importedModuleGroups.join('", "')}"?`
+                  `"${currentModule}" statically imports "${importedModule}" which is not allowed. Should it be in ${
+                    importedModuleAllowedImporters.length > 1 ? 'one of ' : ''
+                  }"${importedModuleAllowedImporters.join('", "')}"?`
                 )
               );
             }
