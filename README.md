@@ -15,10 +15,22 @@ Tag files you want to be in the same group by adding a comment with the group na
 If you attempt to statically import a file that is not in the same group, your build will fail with something like:
 
 ```
-"entry.js" statically imports "load-me-dynamically.js" which is not allowed because it is not in the same group. Should it be in "entry"?
+"entry.js" statically imports "load-me-dynamically.js" which is not allowed. Should it be in "entry"?
 ```
 
 That's it!
+
+### More Detail
+
+With strict mode disabled anything that is not assigned a group will default to the group named `default`.
+
+Each module can only be assigned to a single group. You can however include additional groups that are allowed to import the module with the following comment:
+
+```js
+// rollup-plugin-bundle-guard: allowedImportFrom=<group 1 name> <group 2 name> ...
+```
+
+This makes it possible for separate bundles to statically import shared dependencies.
 
 ## Installation
 
@@ -36,19 +48,20 @@ import rollupPluginBundleGuard from 'rollup-plugin-bundle-guard';
 export default {
   input: 'main.js',
   plugins: [
+    // default config
+    // rollupPluginBundleGuard(),
+
+    // all the options
     rollupPluginBundleGuard({
-      // defaults to `false`. If enabled, all imported modules must be assigned a group. Otherwise anything without a group can always be imported.
-      strictMode: true,
-      groups: {
-        entry: [
-          // the 'react' module will be part of the 'entry' group
-          'react'
-        ],
-        someGroup: [
-          // anything that contains the string 'somegroup' will be part of the 'someGroup' group
-          /somegroup/
-        ]
-      },
+      // Defaults to `false`. If enabled, all imported modules must be assigned a group.
+      // Otherwise anything without a group is assigned a group named `default`
+      strictMode: false,
+      modules: [
+        // 'react' can be imported from both the `entry` and `default` group
+        { allowedImportFrom: ['entry', 'default'], module: 'react' },
+        // anything that contains the string 'somegroup' will be part of the 'someGroup' group
+        { group: 'someGroup', module: /somegroup/ },
+      ],
       // optional. The default (below) disables checking comments for anything in 'node_modules'
       comments: {
         pathPatterns: [ /node_modules/ ],
@@ -66,16 +79,26 @@ main.js
 ```js
 // rollup-plugin-bundle-guard: group=entry
 
-import 'react'; // allowed because assigned to `entry` in config
-import './b.js'; // allowed because `./b.js` is also in `entry`
+import 'react'; // allowed because `entry` is allowed to import `react`
+import './a.js'; // allowed because `./a.js` is also in `entry`
 
-import('./c.js'); // allowed because it's a dynamic import
+import('./b.js'); // allowed because it's a dynamic import
+```
+
+a.js
+
+```js
+// rollup-plugin-bundle-guard: group=entry
+
+console.log('In module a.');
 ```
 
 b.js
 
 ```js
-// rollup-plugin-bundle-guard: group=entry
+// rollup-plugin-bundle-guard: group=group2
+
+import './c.js'; // ERROR! c is in `default`, not `group2`
 
 console.log('In module b.');
 ```
@@ -83,9 +106,17 @@ console.log('In module b.');
 c.js
 
 ```js
-// rollup-plugin-bundle-guard: group=group2
-
-import './b.js'; // ERROR! b is in `entry`, not `group2`
+// in the default group
+import './d.js';
 
 console.log('In module c.');
+```
+
+d.js
+
+```js
+// in the `default` group
+import 'react'; // allowed because `default` is allowed to import `react`
+
+console.log('In module d.');
 ```

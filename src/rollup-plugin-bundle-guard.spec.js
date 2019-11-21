@@ -89,8 +89,6 @@ describe('RollupPluginBundleGuard', () => {
       config: undefined,
       files: {
         [entryFile]: `
-          // rollup-plugin-bundle-guard: group=entry
-
           import 'a';
           import 'b';
 
@@ -98,40 +96,42 @@ describe('RollupPluginBundleGuard', () => {
           import('c');
         `,
         a: ``,
-        b: `// rollup-plugin-bundle-guard: group=group1 entry`,
+        b: `// rollup-plugin-bundle-guard: allowedImportFrom=group1`,
         c: `
-          // rollup-plugin-bundle-guard: group=group2 group3
+          // rollup-plugin-bundle-guard: group=group1
           import 'd';`,
-        d: `// rollup-plugin-bundle-guard: group=group3`
+        d: `
+          // rollup-plugin-bundle-guard: group=group1
+          import 'b';
+        `
       }
     });
   });
 
   it('case 4', async () => {
-    await expect(
-      doBuild({
-        config: undefined,
-        files: {
-          [entryFile]: `
-            // rollup-plugin-bundle-guard: group=entry
+    await doBuild({
+      config: undefined,
+      files: {
+        [entryFile]: `
+          import 'a';
+          import 'b';
 
-            import 'a';
-            import 'b';
-
-            import('b');
-            import('c');
-          `,
-          a: ``,
-          b: `// rollup-plugin-bundle-guard: group=group1`,
-          c: `
-        // rollup-plugin-bundle-guard: group=group2
-        import 'd';`,
-          d: `// rollup-plugin-bundle-guard: group=group3`
-        }
-      })
-    ).rejects.toMatchObject({
-      message:
-        '"entry.js" statically imports "b" which is not allowed because it is not in the same group. Should it be in "group1"?'
+          import('b');
+          import('c');
+        `,
+        a: ``,
+        b: `
+          // rollup-plugin-bundle-guard: group=group1
+          // rollup-plugin-bundle-guard: allowedImportFrom=default
+        `,
+        c: `
+          // rollup-plugin-bundle-guard: group=group2
+          import 'd';`,
+        d: `
+          // rollup-plugin-bundle-guard: group=group3
+          // rollup-plugin-bundle-guard: allowedImportFrom=group2
+        `
+      }
     });
   });
 
@@ -139,9 +139,12 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          groups: {
-            group4: ['some-external']
-          },
+          modules: [
+            {
+              module: 'some-external',
+              group: 'group4'
+            }
+          ],
           strictMode: true
         },
         external: ['some-external'],
@@ -155,7 +158,7 @@ describe('RollupPluginBundleGuard', () => {
       })
     ).rejects.toMatchObject({
       message:
-        '"entry.js" statically imports "some-external" which is not allowed because it is not in the same group. Should it be in "group4"?'
+        '"entry.js" statically imports "some-external" which is not allowed. Should it be in "group4"?'
     });
   });
 
@@ -204,9 +207,7 @@ describe('RollupPluginBundleGuard', () => {
   it('case 8', async () => {
     await doBuild({
       config: {
-        groups: {
-          entry: ['node_modules/something']
-        },
+        modules: [{ module: 'node_modules/something', group: 'entry' }],
         strictMode: true
       },
       files: {
@@ -283,7 +284,7 @@ describe('RollupPluginBundleGuard', () => {
       })
     ).rejects.toMatchObject({
       message:
-        '"b" statically imports "a" which is not allowed because it is not in the same group. Should it be in "entry"?'
+        '"b" statically imports "a" which is not allowed. Should it be in "entry"?'
     });
   });
 
@@ -309,7 +310,135 @@ describe('RollupPluginBundleGuard', () => {
       })
     ).rejects.toMatchObject({
       message:
-        '"b" statically imports "a" which is not allowed because it is not in the same group. Should it be in "entry"?'
+        '"b" statically imports "a" which is not allowed. Should it be in "entry"?'
+    });
+  });
+
+  it('case 13', async () => {
+    await expect(
+      doBuild({
+        config: {
+          modules: [{ module: 'a', group: 'group1' }]
+        },
+        files: {
+          [entryFile]: `
+            import 'a';
+          `,
+          a: ``
+        }
+      })
+    ).rejects.toMatchObject({
+      message:
+        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?'
+    });
+  });
+
+  it('case 14', async () => {
+    await doBuild({
+      config: {
+        modules: [
+          { module: entryFile, group: 'group1' },
+          {
+            module: 'a',
+            allowedImportFrom: ['group1']
+          }
+        ]
+      },
+      files: {
+        [entryFile]: `
+          import 'a';
+        `,
+        a: ``
+      }
+    });
+  });
+
+  it('case 15', async () => {
+    await doBuild({
+      config: {
+        modules: [
+          {
+            module: 'a',
+            allowedImportFrom: ['default'],
+            group: 'group1'
+          }
+        ]
+      },
+      files: {
+        [entryFile]: `
+          import 'a';
+        `,
+        a: ``
+      }
+    });
+  });
+
+  it('case 16', async () => {
+    await expect(
+      doBuild({
+        config: {
+          modules: [
+            {
+              module: entryFile,
+              group: 'group1'
+            }
+          ]
+        },
+        files: {
+          [entryFile]: `
+            // rollup-plugin-bundle-guard: group=entry
+          `
+        }
+      })
+    ).rejects.toMatchObject({
+      message:
+        '"entry.js" is already assigned to group "entry". It cannot also be assigned to group "group1".'
+    });
+  });
+
+  it('case 17', async () => {
+    await doBuild({
+      config: {
+        modules: [
+          {
+            module: 'b',
+            allowedImportFrom: ['group2']
+          }
+        ]
+      },
+      files: {
+        [entryFile]: `
+          // rollup-plugin-bundle-guard: group=group1
+          import('a');
+          import 'b';
+        `,
+        a: `
+          // rollup-plugin-bundle-guard: group=group2
+          import 'b';
+        `,
+        b: `
+          // rollup-plugin-bundle-guard: allowedImportFrom=group1
+        `
+      }
+    });
+  });
+
+  it('case 18', async () => {
+    await doBuild({
+      config: undefined,
+      files: {
+        [entryFile]: `
+          import 'a';
+          import('b');
+        `,
+        a: `
+          // rollup-plugin-bundle-guard: allowedImportFrom=group1 entry
+        `,
+        b: `
+          // rollup-plugin-bundle-guard: group=group1
+          import 'a';
+        `
+      }
     });
   });
 });
