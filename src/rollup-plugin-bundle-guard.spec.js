@@ -304,13 +304,14 @@ describe('RollupPluginBundleGuard', () => {
             // rollup-plugin-bundle-guard: group=entry
           `,
           b: `
+            // rollup-plugin-bundle-guard: group=group2
             import 'a'
           `
         }
       })
     ).rejects.toMatchObject({
       message:
-        '"b" statically imports "a" which is not allowed. Should it be in "entry"?'
+        '"b" statically imports "a" which is not allowed. Should it be in one of "entry", "default"?'
     });
   });
 
@@ -318,7 +319,7 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          modules: [{ module: 'a', group: 'group1' }]
+          modules: [{ module: 'a', group: 'group1', allowedImportFrom: [] }]
         },
         files: {
           [entryFile]: `
@@ -334,6 +335,20 @@ describe('RollupPluginBundleGuard', () => {
   });
 
   it('case 14', async () => {
+    await doBuild({
+      config: {
+        modules: [{ module: 'a', group: 'group1' }]
+      },
+      files: {
+        [entryFile]: `
+            import 'a';
+          `,
+        a: ``
+      }
+    });
+  });
+
+  it('case 15', async () => {
     await doBuild({
       config: {
         modules: [
@@ -353,7 +368,7 @@ describe('RollupPluginBundleGuard', () => {
     });
   });
 
-  it('case 15', async () => {
+  it('case 16', async () => {
     await doBuild({
       config: {
         modules: [
@@ -373,7 +388,7 @@ describe('RollupPluginBundleGuard', () => {
     });
   });
 
-  it('case 16', async () => {
+  it('case 17', async () => {
     await expect(
       doBuild({
         config: {
@@ -396,7 +411,7 @@ describe('RollupPluginBundleGuard', () => {
     });
   });
 
-  it('case 17', async () => {
+  it('case 18', async () => {
     await doBuild({
       config: {
         modules: [
@@ -423,7 +438,7 @@ describe('RollupPluginBundleGuard', () => {
     });
   });
 
-  it('case 18', async () => {
+  it('case 19', async () => {
     await doBuild({
       config: undefined,
       files: {
@@ -439,6 +454,21 @@ describe('RollupPluginBundleGuard', () => {
           import 'a';
         `
       }
+    });
+  });
+
+  it('case 20', async () => {
+    await expect(
+      doBuild({
+        config: {
+          modules: [{}]
+        },
+        files: {
+          [entryFile]: ``
+        }
+      })
+    ).rejects.toMatchObject({
+      message: `'module' required.`
     });
   });
 });

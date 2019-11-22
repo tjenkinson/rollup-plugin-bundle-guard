@@ -22,7 +22,7 @@ That's it!
 
 ### More Detail
 
-With strict mode disabled anything that is not assigned a group will default to the group named `default`.
+With strict mode disabled anything that is not assigned a group will default to the group named `default`, and anything is allowed to import something assigned to the `default` group.
 
 Each module can only be assigned to a single group. You can however include additional groups that are allowed to import the module with the following comment:
 
@@ -81,6 +81,7 @@ main.js
 
 import 'react'; // allowed because `entry` is allowed to import `react`
 import './a.js'; // allowed because `./a.js` is also in `entry`
+import './b.js'; // ERROR! not allowed because `./b.js` is not in `entry`
 
 import('./b.js'); // allowed because it's a dynamic import
 ```
@@ -117,6 +118,8 @@ d.js
 ```js
 // in the `default` group
 import 'react'; // allowed because `default` is allowed to import `react`
+
+import './a.js'; // allowed because in non strict mode `a.js` is allowing imports from `default`
 
 console.log('In module d.');
 ```

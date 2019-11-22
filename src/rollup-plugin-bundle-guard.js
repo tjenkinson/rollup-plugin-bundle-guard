@@ -24,7 +24,9 @@ module.exports = ({
   function addModuleIdToAllowedImporters(moduleId, groupName) {
     const allowedImporters =
       moduleIdToAllowedImporters.get(moduleId) || new Set();
-    allowedImporters.add(groupName);
+    if (groupName) {
+      allowedImporters.add(groupName);
+    }
     moduleIdToAllowedImporters.set(moduleId, allowedImporters);
   }
 
@@ -38,26 +40,32 @@ module.exports = ({
     }
   }
 
-  async function getModuleGroup(context, moduleId) {
+  async function processConfig(context, moduleId) {
     if (!modulesCheckedConfig.has(moduleId)) {
       modulesCheckedConfig.add(moduleId);
       for (let i = 0; i < modules.length; i++) {
-        const { module: moduleName, allowedImportFrom = [], group } = modules[
-          i
-        ];
+        const { module: moduleName, allowedImportFrom, group } = modules[i];
         if (!moduleName) {
-          context.error(new Error(`'moduleName' required.`));
+          context.error(new Error(`'module' required.`));
         }
         if (await moduleIdMatches(context, moduleId, moduleName)) {
           if (!strictMode || group) {
             addModuleIdToGroup(context, moduleId, group || defaultGroupName);
           }
-          allowedImportFrom.forEach(allowedImportFromGroup => {
-            addModuleIdToAllowedImporters(moduleId, allowedImportFromGroup);
-          });
+          if (allowedImportFrom) {
+            // an empty array of allowed importers should clear the `default` group
+            addModuleIdToAllowedImporters(moduleId, null);
+            allowedImportFrom.forEach(allowedImportFromGroup => {
+              addModuleIdToAllowedImporters(moduleId, allowedImportFromGroup);
+            });
+          }
         }
       }
     }
+  }
+
+  async function getModuleGroup(context, moduleId) {
+    await processConfig(context, moduleId);
     return moduleIdToGroup.has(moduleId)
       ? moduleIdToGroup.get(moduleId)
       : strictMode
@@ -66,16 +74,13 @@ module.exports = ({
   }
 
   async function getModuleAllowedImporters(context, moduleId) {
+    await processConfig(context, moduleId);
+    const moduleGroup = await getModuleGroup(context, moduleId);
     const allowedImporters = [
-      ...(moduleIdToAllowedImporters.get(moduleId) || new Set())
+      ...(moduleIdToAllowedImporters.get(moduleId) ||
+        new Set([!strictMode && defaultGroupName].filter(Boolean)))
     ];
-    return [
-      ...new Set(
-        [await getModuleGroup(context, moduleId), ...allowedImporters].filter(
-          Boolean
-        )
-      )
-    ];
+    return [...new Set([moduleGroup, ...allowedImporters].filter(Boolean))];
   }
 
   return {
