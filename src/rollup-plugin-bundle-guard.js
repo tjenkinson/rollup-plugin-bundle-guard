@@ -94,7 +94,7 @@ module.exports = ({
         return;
       }
 
-      this.parse(code, {
+      const ast = this.parse(code, {
         onComment: (_block, text) => {
           const trimmed = text.trim();
           if (trimmed.startsWith(groupCommentFlag)) {
@@ -110,6 +110,7 @@ module.exports = ({
           }
         }
       });
+      return { code, ast, map: null };
     },
 
     async generateBundle(_, bundle) {
