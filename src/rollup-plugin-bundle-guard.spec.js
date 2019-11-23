@@ -471,4 +471,39 @@ describe('RollupPluginBundleGuard', () => {
       message: `'module' required.`
     });
   });
+
+  it('case 21', async () => {
+    await expect(
+      doBuild({
+        config: undefined,
+        files: {
+          [entryFile]: `
+            import 'a';
+          `,
+          a: `
+            // rollup-plugin-bundle-guard: group=group1
+            // rollup-plugin-bundle-guard: allowedImportFrom=
+          `
+        }
+      })
+    ).rejects.toMatchObject({
+      message:
+        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?'
+    });
+  });
+
+  it('case 22', async () => {
+    await expect(
+      doBuild({
+        config: undefined,
+        files: {
+          [entryFile]: `
+            // rollup-plugin-bundle-guard: group=
+          `
+        }
+      })
+    ).rejects.toMatchObject({
+      message: `Group name must not be empty.`
+    });
+  });
 });

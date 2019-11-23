@@ -99,12 +99,16 @@ module.exports = ({
           const trimmed = text.trim();
           if (trimmed.startsWith(groupCommentFlag)) {
             const groupName = trimmed.substr(groupCommentFlag.length);
+            if (!groupName) {
+              this.error(new Error('Group name must not be empty.'));
+            }
             addModuleIdToGroup(this, moduleId, groupName);
           } else if (trimmed.startsWith(allowedImportFromCommentFlag)) {
+            addModuleIdToAllowedImporters(moduleId, null);
             const groupNames = trimmed
               .substr(allowedImportFromCommentFlag.length)
               .split(' ');
-            groupNames.forEach(groupName => {
+            groupNames.filter(Boolean).forEach(groupName => {
               addModuleIdToAllowedImporters(moduleId, groupName);
             });
           }
