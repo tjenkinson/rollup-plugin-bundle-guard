@@ -506,4 +506,22 @@ describe('RollupPluginBundleGuard', () => {
       message: `Group name must not be empty.`
     });
   });
+
+  it('case 23', async () => {
+    await doBuild({
+      config: {
+        strictMode: true,
+        modules: [
+          {
+            module: [entryFile, 'a'],
+            group: 'group1'
+          }
+        ]
+      },
+      files: {
+        [entryFile]: `import 'a';`,
+        a: ``
+      }
+    });
+  });
 });

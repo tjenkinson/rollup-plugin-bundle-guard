@@ -44,22 +44,42 @@ module.exports = ({
     if (!modulesCheckedConfig.has(moduleId)) {
       modulesCheckedConfig.add(moduleId);
       for (let i = 0; i < modules.length; i++) {
-        const { module: moduleName, allowedImportFrom, group } = modules[i];
-        if (!moduleName) {
+        const {
+          module: moduleSingleOrArray,
+          allowedImportFrom,
+          group
+        } = modules[i];
+        const moduleArray = !moduleSingleOrArray
+          ? []
+          : Array.isArray(moduleSingleOrArray)
+          ? moduleSingleOrArray
+          : [moduleSingleOrArray];
+        if (!moduleArray.length) {
           context.error(new Error(`'module' required.`));
         }
-        if (await moduleIdMatches(context, moduleId, moduleName)) {
-          if (!strictMode || group) {
-            addModuleIdToGroup(context, moduleId, group || defaultGroupName);
-          }
-          if (allowedImportFrom) {
-            // an empty array of allowed importers should clear the `default` group
-            addModuleIdToAllowedImporters(moduleId, null);
-            allowedImportFrom.forEach(allowedImportFromGroup => {
-              addModuleIdToAllowedImporters(moduleId, allowedImportFromGroup);
-            });
-          }
-        }
+        await Promise.all(
+          moduleArray.map(async moduleName => {
+            if (await moduleIdMatches(context, moduleId, moduleName)) {
+              if (!strictMode || group) {
+                addModuleIdToGroup(
+                  context,
+                  moduleId,
+                  group || defaultGroupName
+                );
+              }
+              if (allowedImportFrom) {
+                // an empty array of allowed importers should clear the `default` group
+                addModuleIdToAllowedImporters(moduleId, null);
+                allowedImportFrom.forEach(allowedImportFromGroup => {
+                  addModuleIdToAllowedImporters(
+                    moduleId,
+                    allowedImportFromGroup
+                  );
+                });
+              }
+            }
+          })
+        );
       }
     }
   }
