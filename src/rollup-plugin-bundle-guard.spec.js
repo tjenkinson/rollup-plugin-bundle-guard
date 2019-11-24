@@ -524,4 +524,22 @@ describe('RollupPluginBundleGuard', () => {
       }
     });
   });
+
+  it('case 24', async () => {
+    await doBuild({
+      config: {
+        strictMode: false,
+        modules: [
+          {
+            module: entryFile
+          }
+        ]
+      },
+      files: {
+        [entryFile]: `
+          // rollup-plugin-bundle-guard: group=entry
+        `
+      }
+    });
+  });
 });

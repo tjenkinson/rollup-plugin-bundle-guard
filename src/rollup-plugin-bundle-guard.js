@@ -60,12 +60,8 @@ module.exports = ({
         await Promise.all(
           moduleArray.map(async moduleName => {
             if (await moduleIdMatches(context, moduleId, moduleName)) {
-              if (!strictMode || group) {
-                addModuleIdToGroup(
-                  context,
-                  moduleId,
-                  group || defaultGroupName
-                );
+              if (group) {
+                addModuleIdToGroup(context, moduleId, group);
               }
               if (allowedImportFrom) {
                 // an empty array of allowed importers should clear the `default` group
