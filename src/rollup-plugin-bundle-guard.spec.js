@@ -542,4 +542,21 @@ describe('RollupPluginBundleGuard', () => {
       }
     });
   });
+
+  it('case 25', async () => {
+    await doBuild({
+      config: {
+        strictMode: true
+      },
+      files: {
+        [entryFile]: `
+          //      rollup-plugin-bundle-guard: group=entry     
+          import 'a';
+        `,
+        a: `
+          /* rollup-plugin-bundle-guard: group=entry */
+        `
+      }
+    });
+  });
 });
