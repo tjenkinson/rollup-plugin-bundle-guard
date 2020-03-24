@@ -1,7 +1,7 @@
 module.exports = ({
   modules = [],
   comments = { pathPatterns: [/node_modules/], isWhitelist: false },
-  strictMode = false
+  strictMode = false,
 } = {}) => {
   const groupCommentFlag = 'rollup-plugin-bundle-guard: group=';
   const allowedImportFromCommentFlag =
@@ -47,7 +47,7 @@ module.exports = ({
         const {
           module: moduleSingleOrArray,
           allowedImportFrom,
-          group
+          group,
         } = modules[i];
         const moduleArray = !moduleSingleOrArray
           ? []
@@ -58,7 +58,7 @@ module.exports = ({
           context.error(new Error(`'module' required.`));
         }
         await Promise.all(
-          moduleArray.map(async moduleName => {
+          moduleArray.map(async (moduleName) => {
             if (await moduleIdMatches(context, moduleId, moduleName)) {
               if (group) {
                 addModuleIdToGroup(context, moduleId, group);
@@ -66,7 +66,7 @@ module.exports = ({
               if (allowedImportFrom) {
                 // an empty array of allowed importers should clear the `default` group
                 addModuleIdToAllowedImporters(moduleId, null);
-                allowedImportFrom.forEach(allowedImportFromGroup => {
+                allowedImportFrom.forEach((allowedImportFromGroup) => {
                   addModuleIdToAllowedImporters(
                     moduleId,
                     allowedImportFromGroup
@@ -94,7 +94,7 @@ module.exports = ({
     const moduleGroup = await getModuleGroup(context, moduleId);
     const allowedImporters = [
       ...(moduleIdToAllowedImporters.get(moduleId) ||
-        new Set([!strictMode && defaultGroupName].filter(Boolean)))
+        new Set([!strictMode && defaultGroupName].filter(Boolean))),
     ];
     return [...new Set([moduleGroup, ...allowedImporters].filter(Boolean))];
   }
@@ -103,7 +103,7 @@ module.exports = ({
     name: 'rollup-plugin-bundle-guard',
 
     transform(code, moduleId) {
-      const match = (comments.pathPatterns || []).some(pattern =>
+      const match = (comments.pathPatterns || []).some((pattern) =>
         pattern.test(moduleId)
       );
       if (match === !comments.isWhitelist) {
@@ -124,11 +124,11 @@ module.exports = ({
             const groupNames = trimmed
               .substr(allowedImportFromCommentFlag.length)
               .split(' ');
-            groupNames.filter(Boolean).forEach(groupName => {
+            groupNames.filter(Boolean).forEach((groupName) => {
               addModuleIdToAllowedImporters(moduleId, groupName);
             });
           }
-        }
+        },
       });
       return { code, ast, map: null };
     },
@@ -168,6 +168,6 @@ module.exports = ({
           }
         }
       }
-    }
+    },
   };
 };
