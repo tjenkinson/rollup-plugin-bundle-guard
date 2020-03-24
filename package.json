@@ -5,6 +5,7 @@
   "main": "src/rollup-plugin-bundle-guard.js",
   "scripts": {
     "prettier": "prettier --write **/*.{js,md}",
+    "lint": "prettier --check **/*.{js,md}",
     "test": "jest"
   },
   "repository": {
