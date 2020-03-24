@@ -16,7 +16,7 @@ function buildFakeFile(id, contents) {
         return contents;
       }
       return null;
-    }
+    },
   };
 }
 
@@ -24,18 +24,18 @@ async function doBuild({ config, files, external }) {
   const bundle = await rollup.rollup({
     external,
     input: entryFile,
-    onwarn: e => {
+    onwarn: (e) => {
       throw new Error(e);
     },
     plugins: [
       RollupPluginBundleGuard(config),
-      ...Object.keys(files).map(fileName =>
+      ...Object.keys(files).map((fileName) =>
         buildFakeFile(
           fileName,
           files[fileName] + `\nconsole.log("${fileName}")`
         )
-      )
-    ]
+      ),
+    ],
   });
   return bundle.generate({ format: 'cjs' });
 }
@@ -55,8 +55,8 @@ describe('RollupPluginBundleGuard', () => {
         a: ``,
         b: ``,
         c: `import 'd';`,
-        d: ``
-      }
+        d: ``,
+      },
     });
   });
 
@@ -75,12 +75,12 @@ describe('RollupPluginBundleGuard', () => {
           a: ``,
           b: ``,
           c: `import 'd';`,
-          d: ``
-        }
+          d: ``,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"a" is not assigned a group, which is required when strict mode is enabled.'
+        '"a" is not assigned a group, which is required when strict mode is enabled.',
     });
   });
 
@@ -103,8 +103,8 @@ describe('RollupPluginBundleGuard', () => {
         d: `
           // rollup-plugin-bundle-guard: group=group1
           import 'b';
-        `
-      }
+        `,
+      },
     });
   });
 
@@ -130,8 +130,8 @@ describe('RollupPluginBundleGuard', () => {
         d: `
           // rollup-plugin-bundle-guard: group=group3
           // rollup-plugin-bundle-guard: allowedImportFrom=group2
-        `
-      }
+        `,
+      },
     });
   });
 
@@ -142,10 +142,10 @@ describe('RollupPluginBundleGuard', () => {
           modules: [
             {
               module: 'some-external',
-              group: 'group4'
-            }
+              group: 'group4',
+            },
           ],
-          strictMode: true
+          strictMode: true,
         },
         external: ['some-external'],
         files: {
@@ -153,12 +153,12 @@ describe('RollupPluginBundleGuard', () => {
             // rollup-plugin-bundle-guard: group=entry
 
             import 'some-external';
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"entry.js" statically imports "some-external" which is not allowed. Should it be in "group4"?'
+        '"entry.js" statically imports "some-external" which is not allowed. Should it be in "group4"?',
     });
   });
 
@@ -166,7 +166,7 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          strictMode: true
+          strictMode: true,
         },
         files: {
           [entryFile]: `
@@ -176,12 +176,12 @@ describe('RollupPluginBundleGuard', () => {
           `,
           'node_modules/something': `
             // rollup-plugin-bundle-guard: group=entry
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"node_modules/something" is not assigned a group, which is required when strict mode is enabled.'
+        '"node_modules/something" is not assigned a group, which is required when strict mode is enabled.',
     });
   });
 
@@ -189,7 +189,7 @@ describe('RollupPluginBundleGuard', () => {
     await doBuild({
       config: {
         strictMode: true,
-        comments: {}
+        comments: {},
       },
       files: {
         [entryFile]: `
@@ -199,8 +199,8 @@ describe('RollupPluginBundleGuard', () => {
         `,
         'node_modules/something': `
           // rollup-plugin-bundle-guard: group=entry
-        `
-      }
+        `,
+      },
     });
   });
 
@@ -208,7 +208,7 @@ describe('RollupPluginBundleGuard', () => {
     await doBuild({
       config: {
         modules: [{ module: 'node_modules/something', group: 'entry' }],
-        strictMode: true
+        strictMode: true,
       },
       files: {
         [entryFile]: `
@@ -216,8 +216,8 @@ describe('RollupPluginBundleGuard', () => {
 
           import 'node_modules/something';
         `,
-        'node_modules/something': ``
-      }
+        'node_modules/something': ``,
+      },
     });
   });
 
@@ -226,7 +226,7 @@ describe('RollupPluginBundleGuard', () => {
       doBuild({
         config: {
           comments: { isWhitelist: true },
-          strictMode: true
+          strictMode: true,
         },
         files: {
           [entryFile]: `
@@ -234,19 +234,19 @@ describe('RollupPluginBundleGuard', () => {
           `,
           a: `
             // rollup-plugin-bundle-guard: group=entry
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"a" is not assigned a group, which is required when strict mode is enabled.'
+        '"a" is not assigned a group, which is required when strict mode is enabled.',
     });
   });
 
   it('case 10', async () => {
     await doBuild({
       config: {
-        strictMode: true
+        strictMode: true,
       },
       files: {
         [entryFile]: `
@@ -257,8 +257,8 @@ describe('RollupPluginBundleGuard', () => {
         a: `
           // rollup-plugin-bundle-guard: group=entry
         `,
-        b: ``
-      }
+        b: ``,
+      },
     });
   });
 
@@ -266,7 +266,7 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          strictMode: true
+          strictMode: true,
         },
         files: {
           [entryFile]: `
@@ -279,12 +279,12 @@ describe('RollupPluginBundleGuard', () => {
           `,
           b: `
             import 'a'
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"b" statically imports "a" which is not allowed. Should it be in "entry"?'
+        '"b" statically imports "a" which is not allowed. Should it be in "entry"?',
     });
   });
 
@@ -292,7 +292,7 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          strictMode: false
+          strictMode: false,
         },
         files: {
           [entryFile]: `
@@ -306,12 +306,12 @@ describe('RollupPluginBundleGuard', () => {
           b: `
             // rollup-plugin-bundle-guard: group=group2
             import 'a'
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"b" statically imports "a" which is not allowed. Should it be in one of "entry", "default"?'
+        '"b" statically imports "a" which is not allowed. Should it be in one of "entry", "default"?',
     });
   });
 
@@ -319,32 +319,32 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          modules: [{ module: 'a', group: 'group1', allowedImportFrom: [] }]
+          modules: [{ module: 'a', group: 'group1', allowedImportFrom: [] }],
         },
         files: {
           [entryFile]: `
             import 'a';
           `,
-          a: ``
-        }
+          a: ``,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?'
+        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?',
     });
   });
 
   it('case 14', async () => {
     await doBuild({
       config: {
-        modules: [{ module: 'a', group: 'group1' }]
+        modules: [{ module: 'a', group: 'group1' }],
       },
       files: {
         [entryFile]: `
             import 'a';
           `,
-        a: ``
-      }
+        a: ``,
+      },
     });
   });
 
@@ -355,16 +355,16 @@ describe('RollupPluginBundleGuard', () => {
           { module: entryFile, group: 'group1' },
           {
             module: 'a',
-            allowedImportFrom: ['group1']
-          }
-        ]
+            allowedImportFrom: ['group1'],
+          },
+        ],
       },
       files: {
         [entryFile]: `
           import 'a';
         `,
-        a: ``
-      }
+        a: ``,
+      },
     });
   });
 
@@ -375,16 +375,16 @@ describe('RollupPluginBundleGuard', () => {
           {
             module: 'a',
             allowedImportFrom: ['default'],
-            group: 'group1'
-          }
-        ]
+            group: 'group1',
+          },
+        ],
       },
       files: {
         [entryFile]: `
           import 'a';
         `,
-        a: ``
-      }
+        a: ``,
+      },
     });
   });
 
@@ -395,19 +395,19 @@ describe('RollupPluginBundleGuard', () => {
           modules: [
             {
               module: entryFile,
-              group: 'group1'
-            }
-          ]
+              group: 'group1',
+            },
+          ],
         },
         files: {
           [entryFile]: `
             // rollup-plugin-bundle-guard: group=entry
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"entry.js" is already assigned to group "entry". It cannot also be assigned to group "group1".'
+        '"entry.js" is already assigned to group "entry". It cannot also be assigned to group "group1".',
     });
   });
 
@@ -417,9 +417,9 @@ describe('RollupPluginBundleGuard', () => {
         modules: [
           {
             module: 'b',
-            allowedImportFrom: ['group2']
-          }
-        ]
+            allowedImportFrom: ['group2'],
+          },
+        ],
       },
       files: {
         [entryFile]: `
@@ -433,8 +433,8 @@ describe('RollupPluginBundleGuard', () => {
         `,
         b: `
           // rollup-plugin-bundle-guard: allowedImportFrom=group1
-        `
-      }
+        `,
+      },
     });
   });
 
@@ -452,8 +452,8 @@ describe('RollupPluginBundleGuard', () => {
         b: `
           // rollup-plugin-bundle-guard: group=group1
           import 'a';
-        `
-      }
+        `,
+      },
     });
   });
 
@@ -461,14 +461,14 @@ describe('RollupPluginBundleGuard', () => {
     await expect(
       doBuild({
         config: {
-          modules: [{}]
+          modules: [{}],
         },
         files: {
-          [entryFile]: ``
-        }
+          [entryFile]: ``,
+        },
       })
     ).rejects.toMatchObject({
-      message: `'module' required.`
+      message: `'module' required.`,
     });
   });
 
@@ -483,12 +483,12 @@ describe('RollupPluginBundleGuard', () => {
           a: `
             // rollup-plugin-bundle-guard: group=group1
             // rollup-plugin-bundle-guard: allowedImportFrom=
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
       message:
-        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?'
+        '"entry.js" statically imports "a" which is not allowed. Should it be in "group1"?',
     });
   });
 
@@ -499,11 +499,11 @@ describe('RollupPluginBundleGuard', () => {
         files: {
           [entryFile]: `
             // rollup-plugin-bundle-guard: group=
-          `
-        }
+          `,
+        },
       })
     ).rejects.toMatchObject({
-      message: `Group name must not be empty.`
+      message: `Group name must not be empty.`,
     });
   });
 
@@ -514,14 +514,14 @@ describe('RollupPluginBundleGuard', () => {
         modules: [
           {
             module: [entryFile, 'a'],
-            group: 'group1'
-          }
-        ]
+            group: 'group1',
+          },
+        ],
       },
       files: {
         [entryFile]: `import 'a';`,
-        a: ``
-      }
+        a: ``,
+      },
     });
   });
 
@@ -531,22 +531,22 @@ describe('RollupPluginBundleGuard', () => {
         strictMode: false,
         modules: [
           {
-            module: entryFile
-          }
-        ]
+            module: entryFile,
+          },
+        ],
       },
       files: {
         [entryFile]: `
           // rollup-plugin-bundle-guard: group=entry
-        `
-      }
+        `,
+      },
     });
   });
 
   it('case 25', async () => {
     await doBuild({
       config: {
-        strictMode: true
+        strictMode: true,
       },
       files: {
         [entryFile]: `
@@ -555,8 +555,8 @@ describe('RollupPluginBundleGuard', () => {
         `,
         a: `
           /* rollup-plugin-bundle-guard: group=entry */
-        `
-      }
+        `,
+      },
     });
   });
 });
