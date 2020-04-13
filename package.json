@@ -4,8 +4,8 @@
   "description": "A rollup plugin that makes sure you don't accidentally import something statically, which could have an effect on your bundle size.",
   "main": "src/rollup-plugin-bundle-guard.js",
   "scripts": {
-    "prettier": "prettier --write **/*.{js,md}",
-    "lint": "prettier --check **/*.{js,md}",
+    "prettier": "prettier --write .",
+    "lint": "prettier --check .",
     "test": "jest"
   },
   "repository": {
