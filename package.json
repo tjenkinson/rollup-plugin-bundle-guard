@@ -32,9 +32,9 @@
     }
   },
   "devDependencies": {
-    "@types/jest": "^26.0.10",
+    "@types/jest": "^28.1.0",
     "husky": "^4.0.2",
-    "jest": "^26.0.1",
+    "jest": "^28.1.0",
     "prettier": "^2.0.2",
     "rollup": "^2.0.0"
   }
